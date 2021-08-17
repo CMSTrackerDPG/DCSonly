@@ -1,0 +1,12 @@
+argparse==1.4.0
+cernrequests==0.3.0
+certifi==2021.5.30
+charset-normalizer==2.0.4
+docopt==0.6.2
+future==0.18.2
+idna==3.2
+requests==2.26.0
+runregistry==0.2.8
+termcolor==1.1.0
+urllib3==1.26.6
+
