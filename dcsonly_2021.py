@@ -9,7 +9,8 @@ import argparse
 from termcolor import colored
 
 # OMS API secret code
-CLIENT_SECRET="PUT CLIENT SECRET CODE HERE!!!"
+CLIENT_SECRET="CLIENT SECRET CODE HERE!!"
+
 
 # Suppress InsecureRequestWarning
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
@@ -23,6 +24,8 @@ parser.add_argument('-m','--min', dest='minrun', type=int, action='store',defaul
                     help='Minimum run number to be included in the list')
 parser.add_argument('-M','--max', dest='maxrun', type=int, action='store',default=999999,
                     help='Maximum run number to be included in the list')
+parser.add_argument('-f','--fill', dest='fill', action='store_true',
+                    help='Produce Fill List file for HDQM')
 
 args = parser.parse_args()
 headers = {"content-type": "application/x-www-form-urlencoded"}
@@ -181,5 +184,45 @@ def dcsonly(rclass,minrun,maxrun=999999):
     print("Total Selected PEAK mode runs : %d" % len(outputP.keys()))
 
 
+def FillList(rclass):
+    lst = []
+    if "Cosmics" in rclass :
+        input_file =open('json_DCSONLY_cosmics.txt','r')
+        json_outfile = "Run_LHCFill_RunDuration_Cosmics.json"
+        cosmics=True
+    else :
+        input_file =open('json_DCSONLY.txt','r')
+        json_outfile = "Run_LHCFill_RunDuration.json"
+        cosmics=False
+      
+          
+    rlist = json.load(input_file)
+    token=get_token()
+    headers = {"Authorization": "Bearer %s" % (token)}      
+    print("Getting run duration info........")
+    print(len(rlist.keys()))
+    for idx,key in enumerate(rlist.keys()):
+        url=("https://cmsoms.cern.ch/agg/api/v1/runs?filter[run_number][eq]=%s&fields=fill_number,duration" % key)
+        data=requests.get(url,headers=headers,verify=False).json()
+        lhcfill=data["data"][0]["attributes"]["fill_number"]
+        dur=data["data"][0]["attributes"]["duration"]
+        if idx%100==0 :
+            print("{0} - Run = {1} - Fill {2} - Dur. {3}".format(idx,key,lhcfill,dur))
+        d={}
+        d['run']=key
+        d['lhcfill']=lhcfill
+        d['rundur']=dur
+        lst.append(d)
+        
+    lst=sorted(lst,key=lambda x:x['run']) 
+    obj ={}
+    obj[json_outfile]=lst		
+
+    outfile=open(json_outfile, 'w')
+    json.dump(obj, outfile,indent=4)
+    print(".....done! Output on {0}".format(json_outfile))
+    
 ######
 dcsonly(args.rclass,args.minrun,args.maxrun)
+if args.fill :
+    FillList(args.rclass)
