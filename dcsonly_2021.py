@@ -151,7 +151,7 @@ def dcsonly(rclass,minrun,maxrun=999999):
             print("\tDAQ:\tBPix-:%.1f%%\tBPix+:%.1f%%\tFPix-:%.1f%%\tFPix+:%.1f%%\tTIB/TID:%.1f%%\tTOB:%.1f%%\tTEC-:%.1f%%\tTEC+:%.1f%%" % (fedin["bpixm"],fedin["bpixp"],fedin["fpixm"],fedin["fpixp"],fedin["tibtid"],fedin["tob"],fedin["tec-"],fedin["tec+"]))
             if "Cosmics" in rclass :
                 if tibtid and tob and tecm and tecp:
-                    if all(i >=80 for i in list(fedin.values())[2:]):
+                    if fedid["tibtid"]>80 and fedid["tob"]>80 and fedid["tec-"]>80 and fedid["tec+"]>80:
                         output.setdefault(i,{"StripMode":dbmode,"readyFlags":[bpix,fpix,tibtid,tob,tecm,tecp],"FEDin":list(fedin.values())})
                         if dbmode=="DECO":
                             outputD.setdefault(i,{"StripMode":dbmode,"readyFlags":[bpix,fpix,tibtid,tob,tecm,tecp],"FEDin":list(fedin.values())})
