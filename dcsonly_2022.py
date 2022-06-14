@@ -9,7 +9,7 @@ import argparse
 from termcolor import colored
 
 # OMS API secret code
-CLIENT_SECRET="CLIENT SECRET CODE HERE!!"
+CLIENT_SECRET="ask for secret code! alessandro.rossi@cern.ch"
 
 
 # Suppress InsecureRequestWarning
@@ -18,7 +18,7 @@ from requests.exceptions import ConnectionError
 requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 
 parser = argparse.ArgumentParser(description='Extract runs list filtering with DCS informations.',prog='DCSonly')
-parser.add_argument('-c','--class', dest='rclass', type=str, action='store', default='Cosmics21',
+parser.add_argument('-c','--class', dest='rclass', type=str, action='store', default='Cosmics22',
                     help='Run Class for which the run list will be created')
 parser.add_argument('-m','--min', dest='minrun', type=int, action='store',default=342000,
                     help='Minimum run number to be included in the list')
@@ -123,9 +123,9 @@ def dcsonly(rclass,minrun,maxrun=999999):
     outputD={}
     outputP={}
     for i in runList:
-        url=("https://cmsoms.cern.ch/agg/api/v1/lumisections?filter[run_number][eq]=%s&filter[cms_active][eq]=true&fields=bpix_ready,fpix_ready,tibtid_ready,tecm_ready,tecp_ready,tob_ready&page[limit]=1" % i)
+        url=("https://cmsoms.cern.ch/agg/api/v1/lumisections?filter[run_number][eq]=%s&fields=bpix_ready,fpix_ready,tibtid_ready,tecm_ready,tecp_ready,tob_ready&page[limit]=9999" % i)
         data=requests.get(url,headers=headers,verify=False).json()
-        partitions=["bpixm","bpixp","fpixm","fpixp","tibtid","tob","tec-","tec+"]
+        partitions=["bpix-","bpix+","fpix-","fpix+","tibtid","tob","tec-","tec+"]
         fedin={}
         color=['red','green']
         if len(data["data"])>=1:
@@ -139,32 +139,46 @@ def dcsonly(rclass,minrun,maxrun=999999):
                 if subd["attributes"]["partition"] in partitions:
                     fedin[subd["attributes"]["partition"]]=100*len(subd["attributes"]["feds_included"])/(len(subd["attributes"]["feds_excluded"])+len(subd["attributes"]["feds_included"]))
                     #print("%s -> %f" % (subd["attributes"]["partition"],fedin[subd["attributes"]["partition"]]))
-
-            bpix=data["data"][0]["attributes"]["bpix_ready"]
-            fpix=data["data"][0]["attributes"]["fpix_ready"]
-            tibtid=data["data"][0]["attributes"]["tibtid_ready"]
-            tob=data["data"][0]["attributes"]["tob_ready"]
-            tecm=data["data"][0]["attributes"]["tecm_ready"]
-            tecp=data["data"][0]["attributes"]["tecp_ready"]
+                for pp in list(set(partitions) - set(fedin.keys())):
+                    fedin[pp]=0
+            bpix_ls=[]
+            fpix_ls=[]
+            tibtid_ls=[]
+            tob_ls=[]
+            tecm_ls=[]
+            tecp_ls=[]
+            for lsinfo in data["data"]:
+                bpix_ls.append(lsinfo["attributes"]["bpix_ready"])
+                fpix_ls.append(lsinfo["attributes"]["fpix_ready"])
+                tibtid_ls.append(lsinfo["attributes"]["tibtid_ready"])
+                tob_ls.append(lsinfo["attributes"]["tob_ready"])
+                tecm_ls.append(lsinfo["attributes"]["tecm_ready"])
+                tecp_ls.append(lsinfo["attributes"]["tecp_ready"])
+            bpix=any(bpix_ls)
+            fpix=any(fpix_ls)
+            tibtid=any(tibtid_ls)
+            tob=any(tob_ls)
+            tecm=any(tecm_ls)
+            tecp=any(tecp_ls)
             print("Run %d - Mode %s" % (i,dbmode))
             print("\tDCS:\tBPix:"+colored("%s" % bpix,color[bpix])+"\t\t\tFPix:"+colored("%s" % fpix,color[fpix])+"\t\t\tTIB/TID:"+colored("%s" % tibtid,color[tibtid])+"\tTOB:"+colored("%s" % tob,color[tob])+"\tTEC-:"+colored("%s" % tecm,color[tecm])+"\tTEC+:"+colored("%s" % tecp,color[tecp]))
-            print("\tDAQ:\tBPix-:%.1f%%\tBPix+:%.1f%%\tFPix-:%.1f%%\tFPix+:%.1f%%\tTIB/TID:%.1f%%\tTOB:%.1f%%\tTEC-:%.1f%%\tTEC+:%.1f%%" % (fedin["bpixm"],fedin["bpixp"],fedin["fpixm"],fedin["fpixp"],fedin["tibtid"],fedin["tob"],fedin["tec-"],fedin["tec+"]))
+            print("\tDAQ:\tBPix-:%.1f%%\tBPix+:%.1f%%\tFPix-:%.1f%%\tFPix+:%.1f%%\tTIB/TID:%.1f%%\tTOB:%.1f%%\tTEC-:%.1f%%\tTEC+:%.1f%%" % (fedin["bpix-"],fedin["bpix+"],fedin["fpix-"],fedin["fpix+"],fedin["tibtid"],fedin["tob"],fedin["tec-"],fedin["tec+"]))
             if "Cosmics" in rclass :
                 if tibtid and tob and tecm and tecp:
-                    if fedid["tibtid"]>80 and fedid["tob"]>80 and fedid["tec-"]>80 and fedid["tec+"]>80:
-                        output.setdefault(i,{"StripMode":dbmode,"readyFlags":[bpix,fpix,tibtid,tob,tecm,tecp],"FEDin":list(fedin.values())})
-                        if dbmode=="DECO":
-                            outputD.setdefault(i,{"StripMode":dbmode,"readyFlags":[bpix,fpix,tibtid,tob,tecm,tecp],"FEDin":list(fedin.values())})
-                        if dbmode=="PEAK":
-                            outputP.setdefault(i,{"StripMode":dbmode,"readyFlags":[bpix,fpix,tibtid,tob,tecm,tecp],"FEDin":list(fedin.values())})                 
+#                    if all(i >=80 for i in list(fedin.values())[2:]):
+                    output.setdefault(i,{"StripMode":dbmode,"readyFlags":[bpix,fpix,tibtid,tob,tecm,tecp],"FEDin":list(fedin.values())})
+                    if dbmode=="DECO":
+                        outputD.setdefault(i,{"StripMode":dbmode,"readyFlags":[bpix,fpix,tibtid,tob,tecm,tecp],"FEDin":list(fedin.values())})
+                    if dbmode=="PEAK":
+                        outputP.setdefault(i,{"StripMode":dbmode,"readyFlags":[bpix,fpix,tibtid,tob,tecm,tecp],"FEDin":list(fedin.values())})                 
             else:
                 if bpix and fpix and tibtid and tob and tecm and tecp:
-                    if all(i >=80 for i in fedin.values()):
-                        output.setdefault(i,{"StripMode":dbmode,"readyFlags":[bpix,fpix,tibtid,tob,tecm,tecp],"FEDin":list(fedin.values())})
-                        if dbmode=="DECO":
-                            outputD.setdefault(i,{"StripMode":dbmode,"readyFlags":[bpix,fpix,tibtid,tob,tecm,tecp],"FEDin":list(fedin.values())})
-                        if dbmode=="PEAK":
-                            outputP.setdefault(i,{"StripMode":dbmode,"readyFlags":[bpix,fpix,tibtid,tob,tecm,tecp],"FEDin":list(fedin.values())})
+#                    if all(i >=80 for i in fedin.values()):
+                    output.setdefault(i,{"StripMode":dbmode,"readyFlags":[bpix,fpix,tibtid,tob,tecm,tecp],"FEDin":list(fedin.values())})
+                    if dbmode=="DECO":
+                        outputD.setdefault(i,{"StripMode":dbmode,"readyFlags":[bpix,fpix,tibtid,tob,tecm,tecp],"FEDin":list(fedin.values())})
+                    if dbmode=="PEAK":
+                        outputP.setdefault(i,{"StripMode":dbmode,"readyFlags":[bpix,fpix,tibtid,tob,tecm,tecp],"FEDin":list(fedin.values())})
     if "Cosmics" in rclass :
         filename = "json_DCSONLY_cosmics.txt"
         filenameD = "json_DCSONLY_cosmics_DECO.txt"
