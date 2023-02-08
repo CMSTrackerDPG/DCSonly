@@ -1,19 +1,33 @@
 #!/usr/bin/env python3
 import json
 import argparse
+import runregistry
 parser = argparse.ArgumentParser(description='Prepare the final json',prog='DCSonly')
 parser.add_argument('-i','--inputfile', dest='infile', type=str, action='store', default='lsinfo_DCSONLY_cosmics.txt', help='file with lsinfo for runs')
 
 parser.add_argument('-o','--output', dest='outfile', type=str, action='store', default='craftGOODwithALLON.json', help='final output json file')
 
-parser.add_argument('--checkPixel', dest='cPix', action='store_true', default=False)
+parser.add_argument('-p','--checkPixel', dest='cPix', action='store_true', default=False)
+
+parser.add_argument('-B','--checkBfield', dest='cB', action='store_true', default=False)
 
 args = parser.parse_args()
 
-print(args.cPix)
-
 with open(args.infile) as f:
   data = json.load(f)
+
+dataB={}
+if args.cB:
+  print("Retrieving B field info...")
+  runsList=list(map(int,data.keys()))
+  Braw=runregistry.get_runs(filter={
+    'run_number':{
+       'or': runsList
+     }
+  })
+  for item in Braw:
+    dataB[str(item['run_number'])]=item['oms_attributes']['b_field']
+  print("...done!")
 
 runJson={}
 for run, lsinfo in data.items():
@@ -21,7 +35,7 @@ for run, lsinfo in data.items():
 #    print(lsinfo)
     runJson[run]=[]
     if len(lsinfo)!=0: 
-      print("processing...")
+      print("Processing...")
       for infokey in lsinfo:
         if infokey == 'err' : continue
         if not 'start' in infokey.keys() : continue
@@ -33,9 +47,13 @@ for run, lsinfo in data.items():
           if (infokey['tracker-strip']['status']!="GOOD")  or (infokey['tracker-track']['status']!="GOOD") or (infokey['tracker-pixel']['status']!="GOOD"): 
             print("Run %s BAD" % run)
             continue
-        else:
-          if (infokey['tracker-strip']['status']!="GOOD")  or (infokey['tracker-track']['status']!="GOOD"): 
-            print("Run %s BAD" % run)
+          else:
+            if (infokey['tracker-strip']['status']!="GOOD")  or (infokey['tracker-track']['status']!="GOOD"): 
+              print("Run %s BAD" % run)
+              continue
+        if args.cB:
+#          print("%s -> B=%f" % (run,dataB[run]))
+          if dataB[run]<3.6:
             continue
 
         lsblock=[]

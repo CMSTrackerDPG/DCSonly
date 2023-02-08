@@ -9,7 +9,7 @@ import argparse
 from termcolor import colored
 
 # OMS API secret code
-CLIENT_SECRET="ask for secret code! cms-trk-dqm-conveners@cern.ch"
+CLIENT_SECRET="INSERT SECRET CODE HERE"
 
 
 # Suppress InsecureRequestWarning
