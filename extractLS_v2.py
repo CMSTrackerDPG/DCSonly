@@ -19,16 +19,11 @@ headers = {"content-type": "application/x-www-form-urlencoded"}
 
 def getls(runNumber, dataset, outDict):
     #runregistry.get_lumisection_ranges
-    #dd= runregistry.get_dataset(runNumber,args.dataset)
-    #print("Run %s state : %s" % (runNumber,dd["dataset_attributes"]["tracker_state"]))
-    #if dd["dataset_attributes"]["tracker_state"] == "COMPLETED":
     print("runregistry.get_lumisection_ranges(%s, %s)" % (runNumber, args.dataset))
     lsrange = runregistry.get_lumisection_ranges(runNumber, args.dataset)
     print(lsrange)
     print(run)
     outDict[runNumber] = lsrange
-    #else:
-    #    print("Run %s NOT COMPLETED" % runNumber)
 
 with open(args.infile) as f:
   data = json.load(f)
@@ -40,19 +35,32 @@ except:
     datadone={}
 
 lsinfo={}
+#Completed Runs List
+print("Generating completed runs list...")
+allruns=list(data.keys())
+print("runregistry.get_datasets(filter={'run_number':{'and':[{'>=': %s},{'<=': %s}]},'dataset_name':{'=': %s},'tracker_state': {'=': 'COMPLETED'}})" % (min(allruns),max(allruns), args.dataset)) 
+ddata=runregistry.get_datasets(filter={'run_number':{'and':[{'>=':min(allruns)},{'<=': max(allruns)}]},'dataset_name':{'=': args.dataset},'tracker_state': {'=': "COMPLETED"}})
+completedRuns=[]
+for r in ddata:
+    completedRuns.append(r['run_number'])
+print(completedRuns)
+print("Total completed runs : %d" % len(completedRuns))
 
 for run in data.keys():
-    if run not in datadone.keys():
-        done=False
-        while(not done):
-            try:
-                getls(run, args.dataset, lsinfo)
-            except:
-                done=False
-            else:
-                done=True
+    if int(run) in completedRuns:
+        if run not in datadone.keys():
+            done=False
+            while(not done):
+                try:
+                    getls(run, args.dataset, lsinfo)
+                except:
+                    done=False
+                else:
+                    done=True
+        else:
+            lsinfo[run]=datadone[run]
+            print("%s already done" % run)
+        with open(args.outfile, 'w') as json_file:
+            json.dump(lsinfo, json_file)
     else:
-        lsinfo[run]=datadone[run]
-        print("%s already done" % run)
-    with open(args.outfile, 'w') as json_file:
-        json.dump(lsinfo, json_file)
+        print("Run %s not COMPLETED" % run)

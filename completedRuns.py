@@ -12,17 +12,17 @@ parser.add_argument('-d','--dataset', dest='dataset', type=str, action='store', 
                     help='Dataset Name')
 parser.add_argument('-i','--inputdata', dest='infile', type=str, action='store', default='json_DCSONLY_cosmics.txt', help='Input run info json produced from dcsonly script')
 
-parser.add_argument('-o','--output', dest='outfile', type=str, action='store', default='lsinfo_DCSONLY_cosmics.txt', help='Input run & LS info json file')
+parser.add_argument('-o','--output', dest='outfile', type=str, action='store', default='completed_DCSONLY_cosmics.txt', help='Input run & LS info json file')
 
 args = parser.parse_args()
 headers = {"content-type": "application/x-www-form-urlencoded"}
 
-def getls(runNumber, dataset, outDict):
+def getState(minrun, maxrun, outDict):
     #runregistry.get_lumisection_ranges
     #dd= runregistry.get_dataset(runNumber,args.dataset)
     #print("Run %s state : %s" % (runNumber,dd["dataset_attributes"]["tracker_state"]))
     #if dd["dataset_attributes"]["tracker_state"] == "COMPLETED":
-    print("runregistry.get_lumisection_ranges(%s, %s)" % (runNumber, args.dataset))
+    print("runregistry.get_datasets(filter={'run_number':{and':[{'>=':%s},{'<=': %s}]},'dataset_name':{'=': %s}})" % (minrun,maxrun,args.dataset))
     lsrange = runregistry.get_lumisection_ranges(runNumber, args.dataset)
     print(lsrange)
     print(run)
