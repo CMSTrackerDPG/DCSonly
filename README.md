@@ -9,7 +9,7 @@ In order to interact with RunRegitry usercert.pem and userkey.pem files need to 
 
 ### OMS API
 
-In order to fetch information from OMS a secret code needs to be added MANUALLY inside the code ([line 12](https://github.com/arossi83/DCSonly/blob/main/dcsonly_2021.py#L12)).  
+In order to fetch information from OMS a secret code needs to be added MANUALLY inside the code ([line 12](https://github.com/arossi83/DCSonly/blob/main/dcsonly_2022.py#L12)).  
 Please send a request to : cms-trk-dqm-conveners@cern.ch
 
 ### Use
